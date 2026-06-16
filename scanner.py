@@ -1,30 +1,30 @@
 import requests
-import urllib3
-from urllib.parse import urlparse, parse_qs
-
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 def get_wayback_urls(domain):
-    url = f"http://web.archive.org/cdx/search/cdx?url={domain}/*&output=text&fl=original&collapse=urlkey&limit=3000"
-    r = requests.get(url, timeout=30)
-    urls = list(set(r.text.splitlines()))
-    return urls
+    url = f"http://web.archive.org/cdx/search/cdx?url={domain}/*&output=json&fl=original&collapse=urlkey"
+    try:
+        r = requests.get(url, timeout=10)
+        data = r.json()
+        return [item[0] for item in data[1:]]
+    except:
+        return []
 
 def check_url(url):
-    result = {'url': url, 'status': 0, 'type': 'other', 'params': []}
-    
-    if url.endswith('.js'): 
-        result['type'] = 'js'
-    elif url.endswith('.json'): 
-        result['type'] = 'json'
-    elif '?' in url and '=' in url:
-        result['type'] = 'param'
-        result['params'] = list(parse_qs(urlparse(url).query).keys())
-    
     try:
-        r = requests.get(url, timeout=5, verify=False, allow_redirects=False)
-        result['status'] = r.status_code
+        r = requests.get(url, timeout=5, allow_redirects=False)
+        status = r.status_code
     except:
-        result['status'] = 'Error'
-    
-    return result
+        status = 0
+
+    url_type = 'other'
+    params = ''
+
+    if '?' in url:
+        url_type = 'param'
+        params = url.split('?')[1]
+    elif url.endswith('.js'):
+        url_type = 'js'
+    elif url.endswith('.json'):
+        url_type = 'json'
+
+    return {'url': url, 'status': status, 'type': url_type, 'params': params}
