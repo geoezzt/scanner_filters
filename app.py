@@ -20,8 +20,11 @@ def scan(domain):
         'params': [], 'js': [], 'json': [], 'other': []
     }
     
-    with concurrent.futures.ThreadPoolExecutor(max_workers=30) as executor:
-        for res in executor.map(check_url, urls[:500]):
+    # خفضنا لـ 200 عشان Vercel timeout 10 ثواني
+    urls_to_check = urls[:200]
+    
+    with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+        for res in executor.map(check_url, urls_to_check):
             status = res['status']
             url = res['url']
             
@@ -38,9 +41,8 @@ def scan(domain):
             elif res['type'] == 'json': 
                 results['json'].append(url)
     
-    # اعمل zip للنتايج
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    zip_name = f"{domain}_{timestamp}.zip"
+    zip_name = f"/tmp/{domain}_{timestamp}.zip"
     
     with zipfile.ZipFile(zip_name, 'w') as zipf:
         for key, data in results.items():
@@ -50,14 +52,15 @@ def scan(domain):
     
     return jsonify({
         'domain': domain,
-        'total': len(urls),
+        'total_found': len(urls),
+        'checked': len(urls_to_check),
         'stats': {k: len(v) for k, v in results.items()},
-        'download': f"/download/{zip_name}"
+        'download': f"/download/{os.path.basename(zip_name)}"
     })
 
 @app.route('/download/<filename>')
 def download(filename):
-    return send_file(filename, as_attachment=True)
+    return send_file(f"/tmp/{filename}", as_attachment=True)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
