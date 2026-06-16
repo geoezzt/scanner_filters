@@ -11,10 +11,20 @@ def get_wayback_urls(domain):
     return urls
 
 def check_url(url):
-    result = {'url': url, 'status': 0}
+    result = {'url': url, 'status': 0, 'type': 'other', 'params': []}
+    
+    if url.endswith('.js'): 
+        result['type'] = 'js'
+    elif url.endswith('.json'): 
+        result['type'] = 'json'
+    elif '?' in url and '=' in url:
+        result['type'] = 'param'
+        result['params'] = list(parse_qs(urlparse(url).query).keys())
+    
     try:
         r = requests.get(url, timeout=5, verify=False, allow_redirects=False)
         result['status'] = r.status_code
     except:
         result['status'] = 'Error'
+    
     return result
