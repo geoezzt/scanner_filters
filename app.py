@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, send_file
+from flask import Flask, jsonify, send_file, render_template
 import os
 import concurrent.futures
 import zipfile
@@ -9,7 +9,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def index():
-    return "Step 1 OK"
+    return render_template('index.html')
 
 @app.route('/scan/<domain>')
 def scan(domain):
@@ -20,7 +20,7 @@ def scan(domain):
         'params': [], 'js': [], 'json': [], 'other': []
     }
     
-    # خفضنا لـ 200 عشان Vercel timeout 10 ثواني
+    # 200 بس عشان Vercel timeout
     urls_to_check = urls[:200]
     
     with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
@@ -46,22 +46,4 @@ def scan(domain):
     
     with zipfile.ZipFile(zip_name, 'w') as zipf:
         for key, data in results.items():
-            if data:
-                filename = f"{key}.txt"
-                zipf.writestr(filename, '\n'.join(data))
-    
-    return jsonify({
-        'domain': domain,
-        'total_found': len(urls),
-        'checked': len(urls_to_check),
-        'stats': {k: len(v) for k, v in results.items()},
-        'download': f"/download/{os.path.basename(zip_name)}"
-    })
-
-@app.route('/download/<filename>')
-def download(filename):
-    return send_file(f"/tmp/{filename}", as_attachment=True)
-
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+            if data
