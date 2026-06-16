@@ -13,7 +13,10 @@ def index():
 def scan(domain):
     urls = get_wayback_urls(domain)
     
-    results = {'200': [], '403': [], '5xx': [], '302': [], 'other': []}
+    results = {
+        '200': [], '403': [], '5xx': [], '302': [],
+        'params': [], 'js': [], 'json': [], 'other': []
+    }
     
     with concurrent.futures.ThreadPoolExecutor(max_workers=30) as executor:
         for res in executor.map(check_url, urls[:500]):
@@ -25,6 +28,13 @@ def scan(domain):
             elif status in [500, 502, 503]: results['5xx'].append(url)
             elif status in [301, 302, 307]: results['302'].append(url)
             else: results['other'].append(url)
+            
+            if res['type'] == 'param': 
+                results['params'].append(f"{url} | {res['params']}")
+            elif res['type'] == 'js': 
+                results['js'].append(url)
+            elif res['type'] == 'json': 
+                results['json'].append(url)
     
     return jsonify({
         'domain': domain,
